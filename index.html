@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Lecturer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0B0F1A;
+  --surface: #111827;
+  --surface2: #1A2235;
+  --surface3: #232F45;
+  --accent: #4FD1C5;
+  --accent2: #F6AD55;
+  --accent3: #9F7AEA;
+  --text: #E8EDF5;
+  --text2: #8B98B0;
+  --text3: #4A5568;
+  --border: rgba(255,255,255,0.07);
+  --success: #48BB78;
+  --error: #FC8181;
+  --mono: 'DM Mono', monospace;
+  --display: 'Fraunces', serif;
+  --body: 'DM Sans', sans-serif;
+  --r: 12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(79,209,197,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,209,197,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow blobs */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+.blob-1 { width: 500px; height: 500px; background: rgba(79,209,197,0.06); top: -100px; right: -100px; }
+.blob-2 { width: 400px; height: 400px; background: rgba(159,122,234,0.05); bottom: -80px; left: -80px; }
+
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── NAV ───────────────────────────────────────────────── */
+nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  background: rgba(11,15,26,0.8);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--text2); font-weight: 300; }
+.nav-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(79,209,197,0.3);
+  color: var(--accent);
+  background: rgba(79,209,197,0.08);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text3);
+  transition: background 0.3s;
+}
+.status-dot.running { background: var(--accent2); animation: pulse 1s infinite; }
+.status-dot.done { background: var(--success); }
+.status-dot.error { background: var(--error); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.status-text { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+
+/* ── TABS ──────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 32px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 8px 18px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  font-family: var(--body);
+  transition: all 0.2s;
+  position: relative;
+  bottom: -1px;
+}
+.tab:hover { color: var(--text); background: var(--surface); }
+.tab.active {
+  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--border);
+  border-bottom-color: var(--surface);
+}
+
+/* ── MAIN CONTENT ──────────────────────────────────────── */
+.main { flex: 1; padding: 28px 32px; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+/* ── PROCESS TAB ───────────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 48px 0 40px;
+}
+.hero h1 {
+  font-family: var(--display);
+  font-size: 52px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 12px;
+}
+.hero h1 em { color: var(--accent); font-style: italic; }
+.hero p { font-size: 16px; color: var(--text2); max-width: 520px; margin: 0 auto 36px; line-height: 1.7; }
+
+.url-form {
+  display: flex;
+  gap: 10px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.url-input {
+  flex: 1;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.url-input:focus { border-color: rgba(79,209,197,0.4); }
+.url-input::placeholder { color: var(--text3); }
+
+.btn {
+  padding: 14px 24px;
+  border-radius: var(--r);
+  border: none;
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #0B0F1A;
+}
+.btn-primary:hover { background: #63e8dc; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--surface3); }
+
+/* Progress */
+.progress-card {
+  max-width: 680px;
+  margin: 28px auto 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 24px;
+}
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.progress-stage { font-size: 13px; font-weight: 500; color: var(--text); }
+.progress-pct { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+.progress-bar-bg { height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+.progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.6s ease; }
+.progress-msg { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 32px 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: rgba(79,209,197,0.2); }
+.stat-val { font-family: var(--display); font-size: 36px; font-weight: 600; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+.stat-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; }
+
+/* ── QUERY TAB ─────────────────────────────────────────── */
+.query-layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+
+.query-panel { display: flex; flex-direction: column; gap: 16px; }
+.query-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+}
+.query-box label { display: block; font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.query-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  min-height: 80px;
+  transition: border-color 0.2s;
+  line-height: 1.6;
+}
+.query-textarea:focus { border-color: rgba(79,209,197,0.4); }
+.query-textarea::placeholder { color: var(--text3); }
+
+.query-actions { display: flex; gap: 10px; align-items: center; }
+.topk-label { font-size: 12px; color: var(--text2); margin-left: auto; white-space: nowrap; }
+.topk-select {
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+/* Result cards */
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  transition: border-color 0.2s, transform 0.15s;
+  animation: fadeUp 0.3s ease both;
+}
+.result-card:hover { border-color: rgba(79,209,197,0.25); transform: translateY(-1px); }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.rank-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(79,209,197,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(79,209,197,0.2);
+}
+.score-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--surface3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.score-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s ease; }
+.score-num { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+.result-text { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
+.result-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.meta-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--text2);
+}
+.meta-chip.time { color: var(--accent2); border-color: rgba(246,173,85,0.3); background: rgba(246,173,85,0.06); }
+.meta-chip.slide { color: var(--accent3); border-color: rgba(159,122,234,0.3); background: rgba(159,122,234,0.06); }
+
+/* Suggestions */
+.suggestions { display: flex; flex-direction: column; gap: 8px; }
+.suggestion-item {
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+.suggestion-item:hover { background: var(--surface3); color: var(--text); border-color: rgba(79,209,197,0.2); }
+.suggestion-icon { color: var(--accent); font-size: 14px; flex-shrink: 0; }
+
+/* ── SLIDES TAB ────────────────────────────────────────── */
+.slides-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.slide-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.slide-card:hover { border-color: rgba(79,209,197,0.3); transform: translateY(-2px); }
+.slide-img-box {
+  aspect-ratio: 16/9;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.slide-img-box img { width: 100%; height: 100%; object-fit: cover; }
+.slide-placeholder { font-family: var(--mono); font-size: 28px; color: var(--text3); }
+.slide-info { padding: 12px; }
+.slide-num { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-bottom: 4px; }
+.slide-ts { font-size: 13px; color: var(--text2); }
+
+/* ── TRANSCRIPT TAB ────────────────────────────────────── */
+.transcript-layout { display: grid; grid-template-columns: 1fr 240px; gap: 20px; }
+.transcript-scroll { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 8px; }
+.transcript-scroll::-webkit-scrollbar { width: 4px; }
+.transcript-scroll::-webkit-scrollbar-track { background: transparent; }
+.transcript-scroll::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+.seg-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+.seg-card:hover { border-color: rgba(79,209,197,0.2); }
+.seg-time { font-family: var(--mono); font-size: 11px; color: var(--accent2); white-space: nowrap; padding-top: 2px; }
+.seg-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.seg-slide { font-family: var(--mono); font-size: 10px; color: var(--accent3); margin-top: 4px; }
+
+/* Slide filter sidebar */
+.filter-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; height: fit-content; }
+.filter-title { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.filter-btn {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text2);
+  font-size: 12px;
+  font-family: var(--body);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.filter-btn:hover { background: var(--surface2); color: var(--text); }
+.filter-btn.active { background: rgba(79,209,197,0.1); color: var(--accent); border-color: rgba(79,209,197,0.2); }
+.filter-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); flex-shrink: 0; }
+
+/* ── PMI TAB ───────────────────────────────────────────── */
+.pmi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.pmi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  display: flex; align-items: center; gap: 14px;
+  transition: border-color 0.2s;
+}
+.pmi-card:hover { border-color: rgba(159,122,234,0.3); }
+.pmi-rank { font-family: var(--display); font-size: 24px; font-weight: 600; color: var(--surface3); min-width: 32px; }
+.pmi-words { flex: 1; }
+.pmi-pair { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.pmi-pair span { color: var(--accent3); }
+.pmi-score-bar { height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.pmi-score-fill { height: 100%; background: var(--accent3); border-radius: 2px; }
+.pmi-val { font-family: var(--mono); font-size: 12px; color: var(--accent3); }
+
+/* ── EMPTY STATES ──────────────────────────────────────── */
+.empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty p { font-size: 14px; }
+
+/* ── SECTION HEADER ────────────────────────────────────── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.section-title { font-family: var(--display); font-size: 24px; font-weight: 600; color: var(--text); }
+.section-count { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+
+/* ── TOAST ─────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--text);
+  z-index: 999;
+  animation: slideIn 0.3s ease;
+}
+@keyframes slideIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* Scrollbar global */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div id="app">
+  <nav>
+    <div class="logo">Smart<span>Lecturer</span></div>
+    <div class="nav-badge">NLIP</div>
+    <div class="nav-right">
+      <div class="status-dot" id="statusDot"></div>
+      <div class="status-text" id="statusText">idle</div>
+    </div>
+  </nav>
+
+  <div class="tabs" id="tabsBar">
+    <div class="tab active" data-tab="process">⚡ Process</div>
+    <div class="tab" data-tab="query">🔍 Query</div>
+    <div class="tab" data-tab="slides">🖼 Slides</div>
+    <div class="tab" data-tab="transcript">📝 Transcript</div>
+    <div class="tab" data-tab="pmi">📊 PMI</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ── PROCESS TAB ── -->
+    <div id="tab-process">
+      <div class="hero">
+        <h1>Understand any lecture<br/><em>instantly</em></h1>
+        <p>Paste a YouTube lecture URL. The system detects slides, transcribes speech, and builds a semantic index you can query in natural language.</p>
+        <div class="url-form">
+          <input class="url-input" id="urlInput" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+          <button class="btn btn-primary" id="processBtn" onclick="startPipeline()">Analyse</button>
+        </div>
+      </div>
+
+      <div class="progress-card" id="progressCard" style="display:none">
+        <div class="progress-header">
+          <div class="progress-stage" id="progStage">Initialising…</div>
+          <div class="progress-pct" id="progPct">0%</div>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progBar" style="width:0%"></div></div>
+        <div class="progress-msg" id="progMsg"></div>
+      </div>
+
+      <div class="stats-row" id="statsRow" style="display:none">
+        <div class="stat-card">
+          <div class="stat-val" id="statSlides">—</div>
+          <div class="stat-label">Slides Detected</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statSegs">—</div>
+          <div class="stat-label">Transcript Segments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statChunks">—</div>
+          <div class="stat-label">Indexed Chunks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statLang">—</div>
+          <div class="stat-label">Language Detected</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── QUERY TAB ── -->
+    <div id="tab-query" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Semantic Search</div>
+      </div>
+      <div class="query-layout">
+        <div class="query-panel">
+          <div class="query-box">
+            <label>Ask anything about the lecture</label>
+            <textarea class="query-textarea" id="queryInput" placeholder="e.g. What is the main concept discussed?" rows="3"></textarea>
+            <div class="query-actions" style="margin-top:10px">
+              <button class="btn btn-primary" onclick="runQuery()">Search</button>
+              <div class="topk-label">Results:</div>
+              <select class="topk-select" id="topkSelect">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="8">8</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+          </div>
+          <div id="queryResults"></div>
+        </div>
+        <div>
+          <div class="query-box" style="margin-bottom:16px">
+            <label>Suggested queries</label>
+            <div class="suggestions" id="suggestions">
+              <div class="suggestion-item" onclick="setSuggestion(this)"><span class="suggestion-icon">→</span>What is the main topic of this lecture?</div>
+              <div class="suggestion-item" onclick="setSuggestion(this)"><span class="suggestion-icon">→</span>Explain the key concepts introduced</div>
+              <div class="suggestion-item" onclick="setSuggestion(this)"><span class="suggestion-icon">→</span>What algorithms or methods are discussed?</div>
+              <div class="suggestion-item" onclick="setSuggestion(this)"><span class="suggestion-icon">→</span>Summarise the conclusion</div>
+              <div class="suggestion-item" onclick="setSuggestion(this)"><span class="suggestion-icon">→</span>What examples are used to explain the topic?</div>
+            </div>
+          </div>
+          <div class="query-box">
+            <label>Score breakdown</label>
+            <div style="font-size:12px;color:var(--text2);line-height:1.9">
+              <div style="display:flex;justify-content:space-between"><span>Vector (semantic)</span><span style="color:var(--accent);font-family:var(--mono)">60%</span></div>
+              <div style="display:flex;justify-content:space-between"><span>TF-IDF (keyword)</span><span style="color:var(--accent2);font-family:var(--mono)">40%</span></div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);color:var(--text3);font-size:11px">Combined score = 0.6×cosine + 0.4×tfidf</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SLIDES TAB ── -->
+    <div id="tab-slides" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Detected Slides</div>
+        <div class="section-count" id="slideCount">0 slides</div>
+      </div>
+      <div class="slides-grid" id="slidesGrid">
+        <div class="empty"><div class="empty-icon">🖼</div><p>Run the pipeline to detect slides</p></div>
+      </div>
+    </div>
+
+    <!-- ── TRANSCRIPT TAB ── -->
+    <div id="tab-transcript" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Transcript</div>
+        <div class="section-count" id="segCount">0 segments</div>
+      </div>
+      <div class="transcript-layout">
+        <div class="transcript-scroll" id="transcriptList">
+          <div class="empty"><div class="empty-icon">📝</div><p>Run the pipeline to see the transcript</p></div>
+        </div>
+        <div class="filter-panel">
+          <div class="filter-title">Filter by slide</div>
+          <div id="slideFilters">
+            <button class="filter-btn active" onclick="filterSlide(null, this)">All segments</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PMI TAB ── -->
+    <div id="tab-pmi" style="display:none">
+      <div class="section-header">
+        <div class="section-title">PMI Collocations</div>
+        <div class="section-count">Top word pair co-occurrences</div>
+      </div>
+      <div class="pmi-grid" id="pmiGrid">
+        <div class="empty"><div class="empty-icon">📊</div><p>Run the pipeline to discover collocations</p></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+let pollTimer = null;
+let allSegments = [];
+let activeSlideFilter = null;
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+document.getElementById('tabsBar').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  const name = tab.dataset.tab;
+  ['process','query','slides','transcript','pmi'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? '' : 'none';
+  });
+  if (name === 'slides') loadSlides();
+  if (name === 'transcript') loadTranscript();
+  if (name === 'pmi') loadPMI();
+  if (name === 'query') checkIndexReady();
+});
+
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+async function startPipeline() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return showToast('Please enter a YouTube URL');
+
+  document.getElementById('processBtn').disabled = true;
+  document.getElementById('progressCard').style.display = '';
+  document.getElementById('statsRow').style.display = 'none';
+
+  try {
+    const r = await fetch(`${API}/process`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Error starting pipeline'); return; }
+    startPolling();
+  } catch(e) {
+    showToast('Cannot reach API — is api.py running?');
+    document.getElementById('processBtn').disabled = false;
+  }
+}
+
+function startPolling() {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(pollStatus, 2000);
+  pollStatus();
+}
+
+async function pollStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    const s = await r.json();
+    updateStatusUI(s);
+    if (s.status === 'done' || s.status === 'error') {
+      clearInterval(pollTimer);
+      document.getElementById('processBtn').disabled = false;
+      if (s.status === 'done') {
+        loadStats();
+        showToast('Pipeline complete! Switch to Query tab.');
+      }
+    }
+  } catch(e) {}
+}
+
+function updateStatusUI(s) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + s.status;
+  txt.textContent = s.status;
+
+  document.getElementById('progStage').textContent = s.stage || 'Processing…';
+  document.getElementById('progPct').textContent = s.progress + '%';
+  document.getElementById('progBar').style.width = s.progress + '%';
+  document.getElementById('progMsg').textContent = s.message || '';
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch(`${API}/metadata`);
+    const m = await r.json();
+    document.getElementById('statsRow').style.display = '';
+    document.getElementById('statSlides').textContent = m.num_slides ?? '—';
+    document.getElementById('statSegs').textContent = m.num_segments ?? '—';
+    document.getElementById('statChunks').textContent = m.num_chunks ?? '—';
+    document.getElementById('statLang').textContent = (m.language || '—').toUpperCase();
+  } catch(e) {}
+}
+
+// ── Query ─────────────────────────────────────────────────────────────────────
+async function checkIndexReady() {
+  try {
+    const r = await fetch(`${API}/status`);
+    const s = await r.json();
+    if (s.status === 'done') document.getElementById('processBtn').disabled = false;
+  } catch(e) {}
+}
+
+function setSuggestion(el) {
+  document.getElementById('queryInput').value = el.textContent.replace('→','').trim();
+}
+
+async function runQuery() {
+  const q = document.getElementById('queryInput').value.trim();
+  const topk = parseInt(document.getElementById('topkSelect').value);
+  if (!q) return;
+
+  const container = document.getElementById('queryResults');
+  container.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:16px 0">Searching…</div>';
+
+  try {
+    const r = await fetch(`${API}/query`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({query: q, top_k: topk})
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Query failed'); container.innerHTML=''; return; }
+    renderResults(data.results);
+  } catch(e) {
+    showToast('Cannot reach API');
+    container.innerHTML = '';
+  }
+}
+
+function renderResults(results) {
+  const container = document.getElementById('queryResults');
+  if (!results.length) { container.innerHTML = '<div class="empty"><p>No results found</p></div>'; return; }
+  container.innerHTML = results.map((r, i) => `
+    <div class="result-card" style="animation-delay:${i*0.05}s">
+      <div class="result-header">
+        <div class="rank-badge">#${r.rank}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${Math.round(r.combined_score*100)}%"></div></div>
+        <div class="score-num">${r.combined_score.toFixed(3)}</div>
+      </div>
+      <div class="result-text">${escHtml(r.text)}</div>
+      <div class="result-meta">
+        ${r.timestamp_fmt ? `<span class="meta-chip time">⏱ ${r.timestamp_fmt}</span>` : ''}
+        ${r.slide_index != null ? `<span class="meta-chip slide">Slide ${r.slide_index}</span>` : ''}
+        <span class="meta-chip">vec ${r.vector_score.toFixed(3)}</span>
+        <span class="meta-chip">tfidf ${r.tfidf_score.toFixed(3)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Slides ────────────────────────────────────────────────────────────────────
+async function loadSlides() {
+  try {
+    const r = await fetch(`${API}/slides`);
+    const data = await r.json();
+    const slides = data.slides || [];
+    document.getElementById('slideCount').textContent = slides.length + ' slides';
+
+    const grid = document.getElementById('slidesGrid');
+    if (!slides.length) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">🖼</div><p>No slides detected yet</p></div>';
+      return;
+    }
+    grid.innerHTML = slides.map((s, i) => `
+      <div class="slide-card" onclick="loadFrame(${i}, this)">
+        <div class="slide-img-box" id="frame-${i}">
+          <div class="slide-placeholder">${String(i).padStart(2,'0')}</div>
+        </div>
+        <div class="slide-info">
+          <div class="slide-num">SLIDE ${String(i).padStart(2,'0')}</div>
+          <div class="slide-ts">⏱ ${fmtTime(s.timestamp_s)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Lazy-load first 4 frames
+    slides.slice(0, 4).forEach((_, i) => loadFrame(i, null));
+  } catch(e) {}
+}
+
+async function loadFrame(idx, card) {
+  const box = document.getElementById('frame-'+idx);
+  if (!box || box.querySelector('img')) return;
+  try {
+    const r = await fetch(`${API}/frame/${idx}`);
+    const data = await r.json();
+    if (data.image) {
+      box.innerHTML = `<img src="${data.image}" alt="Slide ${idx}" loading="lazy"/>`;
+    }
+  } catch(e) {}
+}
+
+// ── Transcript ────────────────────────────────────────────────────────────────
+async function loadTranscript() {
+  try {
+    const r = await fetch(`${API}/transcript`);
+    const data = await r.json();
+    allSegments = data.segments || [];
+    document.getElementById('segCount').textContent = allSegments.length + ' segments';
+    renderTranscript(allSegments);
+
+    // Build slide filters
+    const slideIndices = [...new Set(allSegments.map(s => s.slide_index).filter(x => x != null))].sort((a,b)=>a-b);
+    const filtersEl = document.getElementById('slideFilters');
+    filtersEl.innerHTML = `<button class="filter-btn active" onclick="filterSlide(null,this)">All segments</button>` +
+      slideIndices.map(i => `<button class="filter-btn" onclick="filterSlide(${i},this)"><span class="filter-dot"></span>Slide ${i}</button>`).join('');
+  } catch(e) {}
+}
+
+function filterSlide(idx, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeSlideFilter = idx;
+  const segs = idx === null ? allSegments : allSegments.filter(s => s.slide_index === idx);
+  renderTranscript(segs);
+}
+
+function renderTranscript(segs) {
+  const el = document.getElementById('transcriptList');
+  if (!segs.length) {
+    el.innerHTML = '<div class="empty"><p>No segments to show</p></div>';
+    return;
+  }
+  el.innerHTML = segs.map(s => `
+    <div class="seg-card">
+      <div class="seg-time">${fmtTime(s.start)}</div>
+      <div>
+        <div class="seg-text">${escHtml(s.text)}</div>
+        ${s.slide_index != null ? `<div class="seg-slide">Slide ${s.slide_index}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── PMI ───────────────────────────────────────────────────────────────────────
+async function loadPMI() {
+  try {
+    const r = await fetch(`${API}/metadata`);
+    const m = await r.json();
+    const items = m.top_pmi_collocations || [];
+    const grid = document.getElementById('pmiGrid');
+
+    if (!items.length) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>No PMI data yet</p></div>';
+      return;
+    }
+    const maxPmi = Math.max(...items.map(x => x.pmi));
+    grid.innerHTML = items.map((item, i) => `
+      <div class="pmi-card">
+        <div class="pmi-rank">${String(i+1).padStart(2,'0')}</div>
+        <div class="pmi-words">
+          <div class="pmi-pair">${item.pair[0]} <span>+</span> ${item.pair[1]}</div>
+          <div class="pmi-score-bar"><div class="pmi-score-fill" style="width:${Math.round(Math.max(0,item.pmi)/maxPmi*100)}%"></div></div>
+        </div>
+        <div class="pmi-val">${item.pmi.toFixed(2)}</div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function fmtTime(s) {
+  if (s == null) return '??:??';
+  const t = Math.floor(s);
+  return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0');
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  let el = document.querySelector('.toast');
+  if (!el) { el = document.createElement('div'); el.className='toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3500);
+}
+
+// ── Init: check if index already exists ──────────────────────────────────────
+(async () => {
+  try {
+    const r = await fetch(`${API}/status`);
+    const s = await r.json();
+    updateStatusUI(s);
+    if (s.status === 'done') {
+      loadStats();
+      document.getElementById('progressCard').style.display = 'none';
+    }
+    if (s.status === 'running') startPolling();
+  } catch(e) {
+    document.getElementById('statusText').textContent = 'API offline';
+  }
+})();
+
+// Enter key on query
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey && document.getElementById('tab-query').style.display !== 'none') {
+    runQuery();
+  }
+});
+</script>
+</body>
+</html>
